@@ -19,8 +19,16 @@ public class PlayerController : MonoBehaviour
         DeathState
     }
 
+    private bool canDash = true;
+    private bool isDashing;
+    private float dashingPower = 24f;
+    private float dashingTime = 0.2f;
+    private float dashingCoolDown = 1f;
+    
+    [SerializeField] private TrailRenderer tr;
+    
     public PlayerState playerState;
-
+    
     private void Start()
     {
         playerState = PlayerState.IdleState;
@@ -34,6 +42,11 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (isDashing)
+        {
+            return;
+        }
+            
         float horizontalInput = Input.GetAxis("Horizontal");
         body.velocity = new Vector2(horizontalInput * speed,body.velocity.y);
 
@@ -46,8 +59,21 @@ public class PlayerController : MonoBehaviour
             jump();
         anim.SetBool("run",horizontalInput != 0);
         anim.SetBool("grounded",grounded);
-        
+
+        if (Input.GetKey(KeyCode.LeftShift)  && canDash)
+        {
+            StartCoroutine(Dash());
+        }
+            
         FallCheck();
+    }
+
+    private void FixedUpdate()
+    {
+        if (isDashing)
+        {
+            return;
+        }
     }
 
     private void jump()
@@ -84,5 +110,20 @@ public class PlayerController : MonoBehaviour
             playerState = PlayerState.DeathState;
             Debug.Log(message:"Game Over");
         }
+    }
+
+    private IEnumerator Dash()
+    {
+        canDash = false;
+        isDashing = true;
+        float originalGravity = body.gravityScale;
+        body.gravityScale =  0f;
+        body.velocity = new Vector2(transform.localScale.x * dashingPower, 0f);
+        yield return new WaitForSeconds(dashingTime);
+        tr.emitting = false;
+        body.gravityScale = originalGravity;
+        isDashing = false;
+        yield return new WaitForSeconds(dashingCoolDown);
+        canDash = true;
     }
 }
